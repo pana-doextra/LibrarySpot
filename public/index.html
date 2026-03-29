@@ -8,7 +8,7 @@
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
- 
+
 <header>
   <div class="logo">
     <div class="logo-dot"></div>
@@ -20,9 +20,12 @@
       LIVE
     </div>
     <span id="header-time" style="color: rgba(255,255,255,0.5)"></span>
+    <div id="header-auth-area">
+      <button class="btn-header-login" onclick="openAuth('login')">Log In</button>
+    </div>
   </div>
 </header>
- 
+
 <main>
   <!-- SIDEBAR -->
   <aside>
@@ -30,16 +33,12 @@
       <h2>📚 Seat Finder</h2>
       <p>Select a seat from the map or list below</p>
     </div>
- 
-    <!-- Student input -->
-    <div class="student-form">
-      <label>Your UID</label>
-      <div class="input-row">
-        <input type="text" id="student-input" placeholder="e.g. U12345678" maxlength="9"/>
-        <button class="btn-checkin" onclick="setStudent()">Check In</button>
-      </div>
+
+    <!-- Locked hint (shown when not logged in) -->
+    <div class="locked-hint show" id="locked-hint" onclick="openAuth('login')">
+      🔒 Log in to reserve a seat
     </div>
- 
+
     <!-- Stats -->
     <div class="stats">
       <div class="stat">
@@ -55,23 +54,23 @@
         <div class="stat-label">Total</div>
       </div>
     </div>
- 
+
     <!-- Legend -->
     <div class="legend">
       <div class="legend-item"><div class="legend-box free"></div> Available</div>
       <div class="legend-item"><div class="legend-box taken"></div> Occupied</div>
       <div class="legend-item"><div class="legend-box mine"></div> Your seat</div>
     </div>
- 
+
     <!-- Seat list -->
     <div class="seat-list" id="seat-list"></div>
- 
+
     <!-- User session -->
     <div class="user-session" id="user-session">
-      <div class="no-session">Not checked in yet</div>
+      <div class="no-session">Not logged in</div>
     </div>
   </aside>
- 
+
   <!-- MAP AREA -->
   <div class="map-area">
     <div class="map-toolbar">
@@ -95,15 +94,15 @@
         <button class="zone-btn" onclick="filterZone('window', this)">Window</button>
       </div>
     </div>
- 
+
     <div class="map-container">
       <div class="floor-plan">
         <div class="floor-label">📍 Main Library — Floor <span id="floor-number">1</span> — Seat Map</div>
- 
+
         <div class="entrance">
           <div class="entrance-tag">⬆ Elevator / Stairs</div>
         </div>
- 
+
         <!-- Zone: Window -->
         <div class="window-strip"></div>
         <div class="zone" id="zone-window">
@@ -113,9 +112,9 @@
           </div>
           <div class="seat-row" id="row-window"></div>
         </div>
- 
+
         <div class="map-feature">📚 Reference Shelves — Row A–C</div>
- 
+
         <!-- Zone: Quiet -->
         <div class="zone" id="zone-quiet">
           <div class="zone-header">
@@ -125,11 +124,11 @@
           <div class="seat-row" id="row-quiet-1"></div>
           <div class="seat-row" id="row-quiet-2"></div>
         </div>
- 
+
         <div class="aisle"></div>
         <div class="map-feature">🖨 Printer Station &nbsp;&nbsp; 💧 Water Refill &nbsp;&nbsp; 🔌 Charging Hub</div>
         <div class="aisle"></div>
- 
+
         <!-- Zone: Collab -->
         <div class="zone" id="zone-collab">
           <div class="zone-header">
@@ -139,14 +138,14 @@
           <div class="seat-row" id="row-collab-1"></div>
           <div class="seat-row" id="row-collab-2"></div>
         </div>
- 
+
         <div class="map-feature">🚪 Emergency Exit</div>
       </div>
     </div>
   </div>
 </main>
- 
-<!-- Modal -->
+
+<!-- Seat Reserve Modal -->
 <div class="modal-overlay" id="modal">
   <div class="modal">
     <h3 id="modal-title">Reserve Seat</h3>
@@ -161,16 +160,285 @@
     <div class="modal-action-row" id="modal-actions"></div>
   </div>
 </div>
- 
+
+<!-- ── AUTH MODAL ─────────────────────────────────────────────────────────── -->
+<div class="auth-overlay" id="auth-modal">
+  <div class="auth-modal">
+    <div class="auth-header">
+      <div class="auth-header-logo">
+        <div class="auth-header-logo-dot"></div>
+        LibrarySpot
+      </div>
+      <div class="auth-tabs">
+        <button class="auth-tab active" id="tab-login" onclick="switchAuthTab('login')">Log In</button>
+        <button class="auth-tab" id="tab-register" onclick="switchAuthTab('register')">Register</button>
+      </div>
+    </div>
+
+    <div class="auth-body">
+      <!-- Login Form -->
+      <div id="form-login">
+        <div class="auth-welcome">
+          <h2>Welcome back 👋</h2>
+          <p>Log in with your student ID to reserve a seat</p>
+        </div>
+        <div class="auth-error" id="login-error"></div>
+        <div class="auth-field">
+          <label>Student ID (UID)</label>
+          <input type="text" id="login-uid" placeholder="e.g. U12345678" maxlength="9" />
+          <div class="auth-hint">Format: U followed by 8 digits</div>
+        </div>
+        <div class="auth-field">
+          <label>Password</label>
+          <input type="password" id="login-password" placeholder="Enter your password" />
+        </div>
+        <button class="btn-auth" id="btn-login" onclick="handleLogin()">Log In</button>
+        <div class="auth-divider">don't have an account?</div>
+        <button class="btn-auth" style="background: transparent; color: var(--ink); border: 1.5px solid var(--border);" onclick="switchAuthTab('register')">Create Account</button>
+      </div>
+
+      <!-- Register Form -->
+      <div id="form-register" style="display:none;">
+        <div class="auth-welcome">
+          <h2>Create account ✨</h2>
+          <p>Register with your university student ID</p>
+        </div>
+        <div class="auth-error" id="register-error"></div>
+        <div class="auth-field">
+          <label>Student ID (UID)</label>
+          <input type="text" id="register-uid" placeholder="e.g. U12345678" maxlength="9" />
+          <div class="auth-hint">Format: U followed by 8 digits</div>
+        </div>
+        <div class="auth-field">
+          <label>Password</label>
+          <input type="password" id="register-password" placeholder="Create a password" />
+        </div>
+        <div class="auth-field">
+          <label>Confirm Password</label>
+          <input type="password" id="register-confirm" placeholder="Repeat your password" />
+        </div>
+        <button class="btn-auth" id="btn-register" onclick="handleRegister()">Create Account</button>
+        <div class="auth-divider">already have an account?</div>
+        <button class="btn-auth" style="background: transparent; color: var(--ink); border: 1.5px solid var(--border);" onclick="switchAuthTab('login')">Log In Instead</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- Toast -->
 <div class="toast" id="toast">
   <span id="toast-icon">✓</span>
   <span id="toast-msg">Done!</span>
 </div>
- 
+
 <script>
+// ─── AUTH STATE ──────────────────────────────────────────────────────────────
+let token = localStorage.getItem('ls_token');
+let currentStudent = localStorage.getItem('ls_uid');
+
+// ─── AUTH MODAL CONTROLS ─────────────────────────────────────────────────────
+function openAuth(tab = 'login') {
+  document.getElementById('auth-modal').classList.add('show');
+  switchAuthTab(tab);
+}
+
+function closeAuth() {
+  document.getElementById('auth-modal').classList.remove('show');
+  // Clear fields
+  ['login-uid','login-password','register-uid','register-password','register-confirm'].forEach(id => {
+    document.getElementById(id).value = '';
+  });
+  document.getElementById('login-error').classList.remove('show');
+  document.getElementById('register-error').classList.remove('show');
+}
+
+function switchAuthTab(tab) {
+  document.getElementById('form-login').style.display = tab === 'login' ? '' : 'none';
+  document.getElementById('form-register').style.display = tab === 'register' ? '' : 'none';
+  document.getElementById('tab-login').classList.toggle('active', tab === 'login');
+  document.getElementById('tab-register').classList.toggle('active', tab === 'register');
+}
+
+// Close auth modal when clicking backdrop
+document.getElementById('auth-modal').addEventListener('click', function(e) {
+  if (e.target === this) closeAuth();
+});
+
+// ─── LOGIN ───────────────────────────────────────────────────────────────────
+async function handleLogin() {
+  const studentId = document.getElementById('login-uid').value.trim();
+  const password = document.getElementById('login-password').value;
+  const errEl = document.getElementById('login-error');
+  const btn = document.getElementById('btn-login');
+
+  // Validate
+  const uidPattern = /^U\d{8}$/;
+  if (!uidPattern.test(studentId)) {
+    errEl.textContent = 'UID must be in format U12345678';
+    errEl.classList.add('show'); return;
+  }
+  if (!password) {
+    errEl.textContent = 'Please enter your password';
+    errEl.classList.add('show'); return;
+  }
+
+  btn.disabled = true;
+  btn.textContent = 'Logging in...';
+  errEl.classList.remove('show');
+
+  try {
+    const res = await fetch('/api/users/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ studentId, password })
+    });
+    const data = await res.json();
+
+    if (!res.ok) {
+      errEl.textContent = data.message || 'Login failed';
+      errEl.classList.add('show');
+      return;
+    }
+
+    // Success
+    token = data.token;
+    currentStudent = data.studentId;
+    localStorage.setItem('ls_token', token);
+    localStorage.setItem('ls_uid', currentStudent);
+    closeAuth();
+    onAuthSuccess();
+    showToast('👋', `Welcome back, ${currentStudent}!`);
+  } catch (err) {
+    errEl.textContent = 'Connection error. Please try again.';
+    errEl.classList.add('show');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Log In';
+  }
+}
+
+// ─── REGISTER ────────────────────────────────────────────────────────────────
+async function handleRegister() {
+  const studentId = document.getElementById('register-uid').value.trim();
+  const password = document.getElementById('register-password').value;
+  const confirm = document.getElementById('register-confirm').value;
+  const errEl = document.getElementById('register-error');
+  const btn = document.getElementById('btn-register');
+
+  const uidPattern = /^U\d{8}$/;
+  if (!uidPattern.test(studentId)) {
+    errEl.textContent = 'UID must be in format U12345678';
+    errEl.classList.add('show'); return;
+  }
+  if (password.length < 6) {
+    errEl.textContent = 'Password must be at least 6 characters';
+    errEl.classList.add('show'); return;
+  }
+  if (password !== confirm) {
+    errEl.textContent = 'Passwords do not match';
+    errEl.classList.add('show'); return;
+  }
+
+  btn.disabled = true;
+  btn.textContent = 'Creating account...';
+  errEl.classList.remove('show');
+
+  try {
+    const res = await fetch('/api/users/register', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ studentId, password })
+    });
+    const data = await res.json();
+
+    if (!res.ok) {
+      errEl.textContent = data.message || 'Registration failed';
+      errEl.classList.add('show');
+      return;
+    }
+
+    // Success
+    token = data.token;
+    currentStudent = data.studentId;
+    localStorage.setItem('ls_token', token);
+    localStorage.setItem('ls_uid', currentStudent);
+    closeAuth();
+    onAuthSuccess();
+    showToast('✅', `Account created! Welcome, ${currentStudent}!`);
+  } catch (err) {
+    errEl.textContent = 'Connection error. Please try again.';
+    errEl.classList.add('show');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Create Account';
+  }
+}
+
+// ─── AUTH SUCCESS / LOGOUT ───────────────────────────────────────────────────
+function onAuthSuccess() {
+  updateHeaderAuth();
+  updateSession();
+  document.getElementById('locked-hint').classList.remove('show');
+}
+
+function logout() {
+  // Leave seat first if occupied
+  if (mySeat) {
+    fetch('/api/seats/leave', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify({})
+    }).finally(() => {
+      seats[mySeat] = { status: 'free', occupant: null };
+      mySeat = null;
+      doLogout();
+    });
+  } else {
+    doLogout();
+  }
+}
+
+function doLogout() {
+  const name = currentStudent;
+  token = null;
+  currentStudent = null;
+  localStorage.removeItem('ls_token');
+  localStorage.removeItem('ls_uid');
+  updateHeaderAuth();
+  updateSession();
+  renderAll();
+  document.getElementById('locked-hint').classList.add('show');
+  showToast('👋', `${name} has left the library. See you next time!`);
+}
+
+function updateHeaderAuth() {
+  const area = document.getElementById('header-auth-area');
+  if (currentStudent) {
+    area.innerHTML = `
+      <div class="header-user-pill">
+        <div class="header-avatar">${currentStudent[0].toUpperCase()}</div>
+        ${currentStudent}
+        <button class="btn-header-logout" onclick="logout()">✕ Leave</button>
+      </div>
+    `;
+  } else {
+    area.innerHTML = `<button class="btn-header-login" onclick="openAuth('login')">Log In</button>`;
+  }
+}
+
+// Enter key support on auth inputs
+document.getElementById('login-password').addEventListener('keydown', e => {
+  if (e.key === 'Enter') handleLogin();
+});
+document.getElementById('register-confirm').addEventListener('keydown', e => {
+  if (e.key === 'Enter') handleRegister();
+});
+
 // ─── DATA ───────────────────────────────────────────────────────────────────
- 
+
 const SEAT_DEFS = {
   window: [
     { id: 'W01', label: 'W-01', desc: 'Window • Power outlet', icon: '🪟' },
@@ -212,16 +480,8 @@ const SEAT_DEFS = {
     { id: 'C12', label: 'C-12', desc: 'Lounge area • Sofa seat', icon: '🛋️' },
   ],
 };
- 
-// Zone tag for each seat group
-const SEAT_ZONE = {
-  window: 'window', quiet1: 'quiet', quiet2: 'quiet',
-  collab1: 'collab', collab2: 'collab',
-};
- 
-// State
-let seats = {};       // seatId → { status: 'free'|'taken', occupant: name|null }
-let currentStudent = null;
+
+let seats = {};
 let mySeat = null;
 let activeFilter = 'all';
 let pendingSeat = null;
@@ -231,60 +491,32 @@ async function loadSeatsFromDB() {
   try {
     const response = await fetch(`/api/seats?floor=${currentFloor}`);
     const dbSeats = await response.json();
-
-    // Convert DB format to frontend format
     seats = {};
     dbSeats.forEach(seat => {
-      // Remove floor prefix for frontend display (e.g., "F1-W01" becomes "W01")
       const displayId = seat.id.replace(`F${currentFloor}-`, '');
-      seats[displayId] = {
-        status: seat.status,
-        occupant: seat.occupant
-      };
+      seats[displayId] = { status: seat.status, occupant: seat.occupant };
     });
-
-    // Ensure all defined seats exist
     Object.values(SEAT_DEFS).flat().forEach(def => {
-      if (!seats[def.id]) {
-        seats[def.id] = { status: 'free', occupant: null };
-      }
+      if (!seats[def.id]) seats[def.id] = { status: 'free', occupant: null };
     });
-
     renderAll();
   } catch (err) {
-    console.error('Failed to load seats from database:', err);
-    // Fallback to initial state
-    initSeats();
-    renderAll();
+    console.error('Failed to load seats:', err);
   }
 }
- 
-function initSeats() {
-  const preOccupied = ['W02', 'Q03', 'Q08', 'Q11', 'C05', 'C09', 'C10'];
-  const occupants = ['U00123456', 'U93415678', 'U20771234', 'U48155678', 'U62385678', 'U11903456', 'U33745678'];
-  
-  Object.values(SEAT_DEFS).flat().forEach(def => {
-    const idx = preOccupied.indexOf(def.id);
-    seats[def.id] = idx >= 0
-      ? { status: 'taken', occupant: occupants[idx] }
-      : { status: 'free', occupant: null };
-  });
-}
- 
-// ─── RENDER ─────────────────────────────────────────────────────────────────
- 
+
 function getSeatClass(id) {
   if (id === mySeat) return 'mine';
-  return seats[id].status;
+  return seats[id]?.status || 'free';
 }
- 
+
 function renderAll() {
   renderMap();
   renderSidebar();
   updateStats();
   updateSession();
 }
- 
+
 function renderMap() {
   const rowMap = {
     'row-window': SEAT_DEFS.window,
@@ -293,7 +525,6 @@ function renderMap() {
     'row-collab-1': SEAT_DEFS.collab1,
     'row-collab-2': SEAT_DEFS.collab2,
   };
- 
   for (const [rowId, defs] of Object.entries(rowMap)) {
     const container = document.getElementById(rowId);
     container.innerHTML = '';
@@ -306,33 +537,28 @@ function renderMap() {
       el.innerHTML = `
         <div class="seat-emoji">${def.icon}</div>
         <div class="seat-num">${def.label}</div>
-        ${seat.occupant ? `<div class="occupant-tag">${seat.occupant}</div>` : ''}
+        ${seat?.occupant ? `<div class="occupant-tag">${seat.occupant}</div>` : ''}
       `;
       el.addEventListener('click', () => onSeatClick(def.id));
       container.appendChild(el);
     });
   }
- 
-  // Apply filter visibility
   applyFilter();
 }
- 
+
 function renderSidebar() {
   const list = document.getElementById('seat-list');
   list.innerHTML = '';
- 
   const groups = [
-    { label: '🪟 Window Zone', defs: SEAT_DEFS.window, zone: 'window' },
-    { label: '🤫 Quiet Study', defs: [...SEAT_DEFS.quiet1, ...SEAT_DEFS.quiet2], zone: 'quiet' },
-    { label: '💬 Collab Zone', defs: [...SEAT_DEFS.collab1, ...SEAT_DEFS.collab2], zone: 'collab' },
+    { label: '🪟 Window Zone', defs: SEAT_DEFS.window },
+    { label: '🤫 Quiet Study', defs: [...SEAT_DEFS.quiet1, ...SEAT_DEFS.quiet2] },
+    { label: '💬 Collab Zone', defs: [...SEAT_DEFS.collab1, ...SEAT_DEFS.collab2] },
   ];
- 
   groups.forEach(group => {
     const zoneTitle = document.createElement('div');
     zoneTitle.className = 'zone-title';
     zoneTitle.textContent = group.label;
     list.appendChild(zoneTitle);
- 
     group.defs.forEach(def => {
       const cls = getSeatClass(def.id);
       const seat = seats[def.id];
@@ -347,7 +573,7 @@ function renderSidebar() {
           </div>
         </div>
         <div class="seat-status ${cls}">
-          ${cls === 'mine' ? 'Your seat' : cls === 'free' ? 'Free' : seat.occupant || 'Occupied'}
+          ${cls === 'mine' ? 'Your seat' : cls === 'free' ? 'Free' : seat?.occupant || 'Occupied'}
         </div>
       `;
       el.addEventListener('click', () => onSeatClick(def.id));
@@ -355,25 +581,21 @@ function renderSidebar() {
     });
   });
 }
- 
+
 function updateStats() {
   const all = Object.values(seats);
-  const free = all.filter(s => s.status === 'free').length;
-  const taken = all.filter(s => s.status === 'taken').length;
-  document.getElementById('stat-free').textContent = free;
-  document.getElementById('stat-taken').textContent = taken;
+  document.getElementById('stat-free').textContent = all.filter(s => s.status === 'free').length;
+  document.getElementById('stat-taken').textContent = all.filter(s => s.status === 'taken').length;
   document.getElementById('stat-total').textContent = all.length;
 }
- 
+
 function updateSession() {
   const el = document.getElementById('user-session');
   if (!currentStudent) {
-    el.innerHTML = '<div class="no-session">Enter your ID above to reserve a seat</div>';
+    el.innerHTML = '<div class="no-session">Not logged in</div>';
     return;
   }
-  const seatLabel = mySeat
-    ? `Seat ${mySeat}`
-    : 'No seat reserved';
+  const seatLabel = mySeat ? `Seat ${mySeat}` : 'No seat reserved';
   el.innerHTML = `
     <div class="user-session-inner">
       <div class="user-pill">
@@ -385,201 +607,110 @@ function updateSession() {
     <div style="margin-top:8px; font-size:11px; color:var(--muted); font-family:'DM Mono',monospace;">${seatLabel}</div>
   `;
 }
- 
+
 function switchFloor(floor, button) {
   currentFloor = floor;
-
-  // Update UI
   document.getElementById('current-floor').textContent = floor;
   document.getElementById('floor-number').textContent = floor;
-
-  // Update active button
   document.querySelectorAll('.floor-btn').forEach(btn => btn.classList.remove('active'));
   button.classList.add('active');
-
-  // Load seats for new floor
   loadSeatsFromDB();
 }
- 
-function setStudent() {
-  const val = document.getElementById('student-input').value.trim();
 
-  // Validate UID format: U followed by 8 digits
-  const uidPattern = /^U\d{8}$/;
-  if (!val) {
-    showToast('⚠️', 'Please enter your UID (e.g., U12345678)');
-    return;
-  }
-  if (!uidPattern.test(val)) {
-    showToast('❌', 'Invalid user: UID must be in format U12345678');
-    return;
-  }
-  if (currentStudent && mySeat) {
-    showToast('⚠️', 'Check out of your current seat first');
-    return;
-  }
-  currentStudent = val;
-  document.getElementById('student-input').value = '';
-  updateSession();
-  showToast('👋', `Welcome, ${val}! Pick a seat from the map.`);
-}
- 
 function onSeatClick(id) {
+  if (!currentStudent) {
+    showToast('🔒', 'Please log in to reserve a seat');
+    openAuth('login');
+    return;
+  }
+
   const allDefs = Object.values(SEAT_DEFS).flat();
   const def = allDefs.find(d => d.id === id);
   const seat = seats[id];
   const cls = getSeatClass(id);
- 
-  if (!currentStudent) {
-    showToast('💡', 'Enter your UID first to reserve a seat');
-    document.getElementById('student-input').focus();
-    return;
-  }
- 
   pendingSeat = id;
- 
-  // If it's my seat → offer checkout
+
   if (cls === 'mine') {
-    showModal(
-      'Leave your seat?',
-      'You can re-reserve anytime while checked in.',
-      def,
-      [
-        { label: 'Stay', cls: 'btn-cancel', action: closeModal },
-        { label: '🚶 Leave Seat', cls: 'btn-checkout', action: checkoutSeat },
-      ]
-    );
+    showModal('Leave your seat?', 'You can re-reserve anytime while logged in.', def, [
+      { label: 'Stay', cls: 'btn-cancel', action: closeModal },
+      { label: '🚶 Leave Seat', cls: 'btn-checkout', action: checkoutSeat },
+    ]);
     return;
   }
- 
-  // Taken by someone else
   if (cls === 'taken') {
     showToast('🚫', `Seat ${def.label} is occupied by ${seat.occupant}`);
     return;
   }
- 
-  // Free → reserve
   if (mySeat) {
-    showModal(
-      'Switch Seats?',
-      `You'll move from ${mySeat} to ${def.label}.`,
-      def,
-      [
-        { label: 'Cancel', cls: 'btn-cancel', action: closeModal },
-        { label: '✓ Switch Seat', cls: 'btn-confirm', action: reserveSeat },
-      ]
-    );
+    showModal('Switch Seats?', `You'll move from ${mySeat} to ${def.label}.`, def, [
+      { label: 'Cancel', cls: 'btn-cancel', action: closeModal },
+      { label: '✓ Switch Seat', cls: 'btn-confirm', action: reserveSeat },
+    ]);
   } else {
-    showModal(
-      'Reserve this seat?',
-      `It will show as reserved under your name.`,
-      def,
-      [
-        { label: 'Cancel', cls: 'btn-cancel', action: closeModal },
-        { label: '✓ Confirm Seat', cls: 'btn-confirm', action: reserveSeat },
-      ]
-    );
+    showModal('Reserve this seat?', 'It will show as reserved under your name.', def, [
+      { label: 'Cancel', cls: 'btn-cancel', action: closeModal },
+      { label: '✓ Confirm Seat', cls: 'btn-confirm', action: reserveSeat },
+    ]);
   }
 }
- 
+
 function reserveSeat() {
   closeModal();
   const allDefs = Object.values(SEAT_DEFS).flat();
   const def = allDefs.find(d => d.id === pendingSeat);
-
-  // Use full seat ID with floor prefix for API
   const fullSeatId = `F${currentFloor}-${pendingSeat}`;
 
-  // Send reservation to backend
   fetch('/api/seats/reserve', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ seatId: fullSeatId, student: currentStudent })
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`
+    },
+    body: JSON.stringify({ seatId: fullSeatId })
   })
   .then(res => res.json())
   .then(data => {
-    if (data.message) {
-      showToast('🚫', data.message);
-      return;
+    if (data.message && data.message !== 'ok') {
+      showToast('🚫', data.message); return;
     }
-    // Free old seat locally
-    if (mySeat) {
-      seats[mySeat] = { status: 'free', occupant: null };
-    }
-    // Take new seat locally
+    if (mySeat) seats[mySeat] = { status: 'free', occupant: null };
     mySeat = pendingSeat;
     seats[mySeat] = { status: 'taken', occupant: currentStudent };
     renderAll();
-    showToast('✅', `Seat ${def.label} reserved for ${currentStudent}`);
+    showToast('✅', `Seat ${def.label} reserved!`);
   })
-  .catch(err => {
-    console.error('Reservation failed:', err);
-    showToast('❌', 'Failed to reserve seat. Please try again.');
-  });
+  .catch(() => showToast('❌', 'Failed to reserve seat. Please try again.'));
 }
- 
+
 function checkoutSeat() {
   closeModal();
   const allDefs = Object.values(SEAT_DEFS).flat();
   const def = allDefs.find(d => d.id === mySeat);
 
-  // Send checkout to backend
   fetch('/api/seats/leave', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ student: currentStudent })
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`
+    },
+    body: JSON.stringify({})
   })
-  .then(res => res.json())
-  .then(data => {
+  .then(() => {
     seats[mySeat] = { status: 'free', occupant: null };
-    const old = mySeat;
     mySeat = null;
     renderAll();
     showToast('🙌', `Seat ${def.label} is now free. Thanks!`);
   })
-  .catch(err => {
-    console.error('Checkout failed:', err);
-    showToast('❌', 'Failed to leave seat. Please try again.');
-  });
+  .catch(() => showToast('❌', 'Failed to leave seat. Please try again.'));
 }
- 
-function logout() {
-  if (mySeat) {
-    // Send checkout to backend
-    fetch('/api/seats/leave', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ student: currentStudent })
-    })
-    .then(() => {
-      seats[mySeat] = { status: 'free', occupant: null };
-      mySeat = null;
-      const name = currentStudent;
-      currentStudent = null;
-      renderAll();
-      showToast('👋', `${name} has left the library. See you next time!`);
-    })
-    .catch(err => {
-      console.error('Logout failed:', err);
-      showToast('❌', 'Failed to logout properly.');
-    });
-  } else {
-    const name = currentStudent;
-    currentStudent = null;
-    renderAll();
-    showToast('👋', `${name} has left the library. See you next time!`);
-  }
-}
- 
+
 // ─── MODAL ───────────────────────────────────────────────────────────────────
- 
 function showModal(title, sub, def, actions) {
   document.getElementById('modal-title').textContent = title;
   document.getElementById('modal-sub').textContent = sub;
   document.getElementById('modal-icon').textContent = def.icon;
   document.getElementById('modal-seat-name').textContent = def.label;
   document.getElementById('modal-seat-desc').textContent = def.desc;
- 
   const actRow = document.getElementById('modal-actions');
   actRow.innerHTML = '';
   actions.forEach(a => {
@@ -589,43 +720,32 @@ function showModal(title, sub, def, actions) {
     btn.addEventListener('click', a.action);
     actRow.appendChild(btn);
   });
- 
   document.getElementById('modal').classList.add('show');
 }
- 
-function closeModal() {
-  document.getElementById('modal').classList.remove('show');
-}
- 
+
+function closeModal() { document.getElementById('modal').classList.remove('show'); }
 document.getElementById('modal').addEventListener('click', function(e) {
   if (e.target === this) closeModal();
 });
- 
-// ─── FILTER ───────────────────────────────────────────────────────────────────
- 
+
+// ─── FILTER ──────────────────────────────────────────────────────────────────
 function filterZone(zone, btn) {
   activeFilter = zone;
   document.querySelectorAll('.zone-btn').forEach(b => b.classList.remove('active'));
   btn.classList.add('active');
   applyFilter();
 }
- 
+
 function applyFilter() {
-  const zones = ['zone-window', 'zone-quiet', 'zone-collab'];
   const map = { 'zone-window': 'window', 'zone-quiet': 'quiet', 'zone-collab': 'collab' };
-  zones.forEach(z => {
+  Object.keys(map).forEach(z => {
     const el = document.getElementById(z);
     if (!el) return;
-    if (activeFilter === 'all' || map[z] === activeFilter) {
-      el.style.display = '';
-    } else {
-      el.style.display = 'none';
-    }
+    el.style.display = (activeFilter === 'all' || map[z] === activeFilter) ? '' : 'none';
   });
 }
- 
+
 // ─── TOAST ───────────────────────────────────────────────────────────────────
- 
 let toastTimer;
 function showToast(icon, msg) {
   clearTimeout(toastTimer);
@@ -635,26 +755,25 @@ function showToast(icon, msg) {
   t.classList.add('show');
   toastTimer = setTimeout(() => t.classList.remove('show'), 3200);
 }
- 
+
 // ─── CLOCK ───────────────────────────────────────────────────────────────────
- 
 function updateClock() {
-  const now = new Date();
   document.getElementById('header-time').textContent =
-    now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 }
 setInterval(updateClock, 1000);
 updateClock();
- 
-// Enter key on student input
-document.getElementById('student-input').addEventListener('keydown', e => {
-  if (e.key === 'Enter') setStudent();
-});
- 
+
 // ─── INIT ────────────────────────────────────────────────────────────────────
 
+// Restore session if token exists
+if (token && currentStudent) {
+  onAuthSuccess();
+}
+
+// Auto-refresh seats every 10 seconds
 loadSeatsFromDB();
+setInterval(loadSeatsFromDB, 10000);
 </script>
 </body>
 </html>
- 
