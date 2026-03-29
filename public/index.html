@@ -1,0 +1,660 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>LibrarySpot — Find Your Seat</title>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+ 
+<header>
+  <div class="logo">
+    <div class="logo-dot"></div>
+    LibrarySpot
+  </div>
+  <div class="header-right">
+    <div class="live-badge">
+      <div class="live-dot"></div>
+      LIVE
+    </div>
+    <span id="header-time" style="color: rgba(255,255,255,0.5)"></span>
+  </div>
+</header>
+ 
+<main>
+  <!-- SIDEBAR -->
+  <aside>
+    <div class="sidebar-top">
+      <h2>📚 Seat Finder</h2>
+      <p>Select a seat from the map or list below</p>
+    </div>
+ 
+    <!-- Student input -->
+    <div class="student-form">
+      <label>Your UID</label>
+      <div class="input-row">
+        <input type="text" id="student-input" placeholder="e.g. U12345678" maxlength="9"/>
+        <button class="btn-checkin" onclick="setStudent()">Check In</button>
+      </div>
+    </div>
+ 
+    <!-- Stats -->
+    <div class="stats">
+      <div class="stat">
+        <div class="stat-num green" id="stat-free">0</div>
+        <div class="stat-label">Free</div>
+      </div>
+      <div class="stat">
+        <div class="stat-num red" id="stat-taken">0</div>
+        <div class="stat-label">Taken</div>
+      </div>
+      <div class="stat">
+        <div class="stat-num" id="stat-total">0</div>
+        <div class="stat-label">Total</div>
+      </div>
+    </div>
+ 
+    <!-- Legend -->
+    <div class="legend">
+      <div class="legend-item"><div class="legend-box free"></div> Available</div>
+      <div class="legend-item"><div class="legend-box taken"></div> Occupied</div>
+      <div class="legend-item"><div class="legend-box mine"></div> Your seat</div>
+    </div>
+ 
+    <!-- Seat list -->
+    <div class="seat-list" id="seat-list"></div>
+ 
+    <!-- User session -->
+    <div class="user-session" id="user-session">
+      <div class="no-session">Not checked in yet</div>
+    </div>
+  </aside>
+ 
+  <!-- MAP AREA -->
+  <div class="map-area">
+    <div class="map-toolbar">
+      <div>
+        <h3>Floor Plan — Level <span id="current-floor">1</span></h3>
+        <p>Click any green seat to reserve it</p>
+      </div>
+      <div class="floor-navigation">
+        <div class="floor-buttons">
+          <button class="floor-btn active" onclick="switchFloor(1, this)">Floor 1</button>
+          <button class="floor-btn" onclick="switchFloor(2, this)">Floor 2</button>
+          <button class="floor-btn" onclick="switchFloor(3, this)">Floor 3</button>
+          <button class="floor-btn" onclick="switchFloor(4, this)">Floor 4</button>
+          <button class="floor-btn" onclick="switchFloor(5, this)">Floor 5</button>
+        </div>
+      </div>
+      <div class="zone-filter">
+        <button class="zone-btn active" onclick="filterZone('all', this)">All</button>
+        <button class="zone-btn" onclick="filterZone('quiet', this)">Quiet</button>
+        <button class="zone-btn" onclick="filterZone('collab', this)">Collab</button>
+        <button class="zone-btn" onclick="filterZone('window', this)">Window</button>
+      </div>
+    </div>
+ 
+    <div class="map-container">
+      <div class="floor-plan">
+        <div class="floor-label">📍 Main Library — Floor <span id="floor-number">1</span> — Seat Map</div>
+ 
+        <div class="entrance">
+          <div class="entrance-tag">⬆ Elevator / Stairs</div>
+        </div>
+ 
+        <!-- Zone: Window -->
+        <div class="window-strip"></div>
+        <div class="zone" id="zone-window">
+          <div class="zone-header">
+            <div class="zone-header-label">🪟 Window Zone</div>
+            <div class="zone-divider"></div>
+          </div>
+          <div class="seat-row" id="row-window"></div>
+        </div>
+ 
+        <div class="map-feature">📚 Reference Shelves — Row A–C</div>
+ 
+        <!-- Zone: Quiet -->
+        <div class="zone" id="zone-quiet">
+          <div class="zone-header">
+            <div class="zone-header-label">🤫 Quiet Study Zone</div>
+            <div class="zone-divider"></div>
+          </div>
+          <div class="seat-row" id="row-quiet-1"></div>
+          <div class="seat-row" id="row-quiet-2"></div>
+        </div>
+ 
+        <div class="aisle"></div>
+        <div class="map-feature">🖨 Printer Station &nbsp;&nbsp; 💧 Water Refill &nbsp;&nbsp; 🔌 Charging Hub</div>
+        <div class="aisle"></div>
+ 
+        <!-- Zone: Collab -->
+        <div class="zone" id="zone-collab">
+          <div class="zone-header">
+            <div class="zone-header-label">💬 Collaboration Zone</div>
+            <div class="zone-divider"></div>
+          </div>
+          <div class="seat-row" id="row-collab-1"></div>
+          <div class="seat-row" id="row-collab-2"></div>
+        </div>
+ 
+        <div class="map-feature">🚪 Emergency Exit</div>
+      </div>
+    </div>
+  </div>
+</main>
+ 
+<!-- Modal -->
+<div class="modal-overlay" id="modal">
+  <div class="modal">
+    <h3 id="modal-title">Reserve Seat</h3>
+    <p class="modal-sub" id="modal-sub">Confirm your selection</p>
+    <div class="modal-seat-info">
+      <div class="modal-seat-icon" id="modal-icon">🪑</div>
+      <div>
+        <div class="modal-seat-name" id="modal-seat-name">—</div>
+        <div class="modal-seat-desc" id="modal-seat-desc">—</div>
+      </div>
+    </div>
+    <div class="modal-action-row" id="modal-actions"></div>
+  </div>
+</div>
+ 
+<!-- Toast -->
+<div class="toast" id="toast">
+  <span id="toast-icon">✓</span>
+  <span id="toast-msg">Done!</span>
+</div>
+ 
+<script>
+// ─── DATA ───────────────────────────────────────────────────────────────────
+ 
+const SEAT_DEFS = {
+  window: [
+    { id: 'W01', label: 'W-01', desc: 'Window • Power outlet', icon: '🪟' },
+    { id: 'W02', label: 'W-02', desc: 'Window • Power outlet', icon: '🪟' },
+    { id: 'W03', label: 'W-03', desc: 'Window • Natural light', icon: '🪟' },
+    { id: 'W04', label: 'W-04', desc: 'Window • Natural light', icon: '🪟' },
+    { id: 'W05', label: 'W-05', desc: 'Window • Corner spot', icon: '🪟' },
+  ],
+  quiet1: [
+    { id: 'Q01', label: 'Q-01', desc: 'Quiet zone • Individual desk', icon: '🤫' },
+    { id: 'Q02', label: 'Q-02', desc: 'Quiet zone • Individual desk', icon: '🤫' },
+    { id: 'Q03', label: 'Q-03', desc: 'Quiet zone • Individual desk', icon: '🤫' },
+    { id: 'Q04', label: 'Q-04', desc: 'Quiet zone • Individual desk', icon: '🤫' },
+    { id: 'Q05', label: 'Q-05', desc: 'Quiet zone • Power outlet', icon: '🤫' },
+    { id: 'Q06', label: 'Q-06', desc: 'Quiet zone • Power outlet', icon: '🤫' },
+  ],
+  quiet2: [
+    { id: 'Q07', label: 'Q-07', desc: 'Quiet zone • Standing desk', icon: '🤫' },
+    { id: 'Q08', label: 'Q-08', desc: 'Quiet zone • Individual desk', icon: '🤫' },
+    { id: 'Q09', label: 'Q-09', desc: 'Quiet zone • Individual desk', icon: '🤫' },
+    { id: 'Q10', label: 'Q-10', desc: 'Quiet zone • Power outlet', icon: '🤫' },
+    { id: 'Q11', label: 'Q-11', desc: 'Quiet zone • Individual desk', icon: '🤫' },
+    { id: 'Q12', label: 'Q-12', desc: 'Quiet zone • Individual desk', icon: '🤫' },
+  ],
+  collab1: [
+    { id: 'C01', label: 'C-01', desc: 'Group table A • 4-seat pod', icon: '💬' },
+    { id: 'C02', label: 'C-02', desc: 'Group table A • 4-seat pod', icon: '💬' },
+    { id: 'C03', label: 'C-03', desc: 'Group table A • 4-seat pod', icon: '💬' },
+    { id: 'C04', label: 'C-04', desc: 'Group table A • 4-seat pod', icon: '💬' },
+    { id: 'C05', label: 'C-05', desc: 'Group table B • Whiteboard', icon: '💬' },
+    { id: 'C06', label: 'C-06', desc: 'Group table B • Whiteboard', icon: '💬' },
+  ],
+  collab2: [
+    { id: 'C07', label: 'C-07', desc: 'Group table B • Whiteboard', icon: '💬' },
+    { id: 'C08', label: 'C-08', desc: 'Group table B • Whiteboard', icon: '💬' },
+    { id: 'C09', label: 'C-09', desc: 'Lounge area • Sofa seat', icon: '🛋️' },
+    { id: 'C10', label: 'C-10', desc: 'Lounge area • Sofa seat', icon: '🛋️' },
+    { id: 'C11', label: 'C-11', desc: 'Lounge area • Sofa seat', icon: '🛋️' },
+    { id: 'C12', label: 'C-12', desc: 'Lounge area • Sofa seat', icon: '🛋️' },
+  ],
+};
+ 
+// Zone tag for each seat group
+const SEAT_ZONE = {
+  window: 'window', quiet1: 'quiet', quiet2: 'quiet',
+  collab1: 'collab', collab2: 'collab',
+};
+ 
+// State
+let seats = {};       // seatId → { status: 'free'|'taken', occupant: name|null }
+let currentStudent = null;
+let mySeat = null;
+let activeFilter = 'all';
+let pendingSeat = null;
+let currentFloor = 1;
+
+async function loadSeatsFromDB() {
+  try {
+    const response = await fetch(`/api/seats?floor=${currentFloor}`);
+    const dbSeats = await response.json();
+
+    // Convert DB format to frontend format
+    seats = {};
+    dbSeats.forEach(seat => {
+      // Remove floor prefix for frontend display (e.g., "F1-W01" becomes "W01")
+      const displayId = seat.id.replace(`F${currentFloor}-`, '');
+      seats[displayId] = {
+        status: seat.status,
+        occupant: seat.occupant
+      };
+    });
+
+    // Ensure all defined seats exist
+    Object.values(SEAT_DEFS).flat().forEach(def => {
+      if (!seats[def.id]) {
+        seats[def.id] = { status: 'free', occupant: null };
+      }
+    });
+
+    renderAll();
+  } catch (err) {
+    console.error('Failed to load seats from database:', err);
+    // Fallback to initial state
+    initSeats();
+    renderAll();
+  }
+}
+ 
+function initSeats() {
+  const preOccupied = ['W02', 'Q03', 'Q08', 'Q11', 'C05', 'C09', 'C10'];
+  const occupants = ['U00123456', 'U93415678', 'U20771234', 'U48155678', 'U62385678', 'U11903456', 'U33745678'];
+  
+  Object.values(SEAT_DEFS).flat().forEach(def => {
+    const idx = preOccupied.indexOf(def.id);
+    seats[def.id] = idx >= 0
+      ? { status: 'taken', occupant: occupants[idx] }
+      : { status: 'free', occupant: null };
+  });
+}
+ 
+// ─── RENDER ─────────────────────────────────────────────────────────────────
+ 
+function getSeatClass(id) {
+  if (id === mySeat) return 'mine';
+  return seats[id].status;
+}
+ 
+function renderAll() {
+  renderMap();
+  renderSidebar();
+  updateStats();
+  updateSession();
+}
+ 
+function renderMap() {
+  const rowMap = {
+    'row-window': SEAT_DEFS.window,
+    'row-quiet-1': SEAT_DEFS.quiet1,
+    'row-quiet-2': SEAT_DEFS.quiet2,
+    'row-collab-1': SEAT_DEFS.collab1,
+    'row-collab-2': SEAT_DEFS.collab2,
+  };
+ 
+  for (const [rowId, defs] of Object.entries(rowMap)) {
+    const container = document.getElementById(rowId);
+    container.innerHTML = '';
+    defs.forEach(def => {
+      const cls = getSeatClass(def.id);
+      const seat = seats[def.id];
+      const el = document.createElement('div');
+      el.className = `map-seat ${cls}`;
+      el.dataset.id = def.id;
+      el.innerHTML = `
+        <div class="seat-emoji">${def.icon}</div>
+        <div class="seat-num">${def.label}</div>
+        ${seat.occupant ? `<div class="occupant-tag">${seat.occupant}</div>` : ''}
+      `;
+      el.addEventListener('click', () => onSeatClick(def.id));
+      container.appendChild(el);
+    });
+  }
+ 
+  // Apply filter visibility
+  applyFilter();
+}
+ 
+function renderSidebar() {
+  const list = document.getElementById('seat-list');
+  list.innerHTML = '';
+ 
+  const groups = [
+    { label: '🪟 Window Zone', defs: SEAT_DEFS.window, zone: 'window' },
+    { label: '🤫 Quiet Study', defs: [...SEAT_DEFS.quiet1, ...SEAT_DEFS.quiet2], zone: 'quiet' },
+    { label: '💬 Collab Zone', defs: [...SEAT_DEFS.collab1, ...SEAT_DEFS.collab2], zone: 'collab' },
+  ];
+ 
+  groups.forEach(group => {
+    const zoneTitle = document.createElement('div');
+    zoneTitle.className = 'zone-title';
+    zoneTitle.textContent = group.label;
+    list.appendChild(zoneTitle);
+ 
+    group.defs.forEach(def => {
+      const cls = getSeatClass(def.id);
+      const seat = seats[def.id];
+      const el = document.createElement('div');
+      el.className = `seat-item ${cls}`;
+      el.innerHTML = `
+        <div class="seat-item-left">
+          <span class="seat-icon">${def.icon}</span>
+          <div>
+            <div class="seat-id">${def.label}</div>
+            <div class="seat-desc">${def.desc}</div>
+          </div>
+        </div>
+        <div class="seat-status ${cls}">
+          ${cls === 'mine' ? 'Your seat' : cls === 'free' ? 'Free' : seat.occupant || 'Occupied'}
+        </div>
+      `;
+      el.addEventListener('click', () => onSeatClick(def.id));
+      list.appendChild(el);
+    });
+  });
+}
+ 
+function updateStats() {
+  const all = Object.values(seats);
+  const free = all.filter(s => s.status === 'free').length;
+  const taken = all.filter(s => s.status === 'taken').length;
+  document.getElementById('stat-free').textContent = free;
+  document.getElementById('stat-taken').textContent = taken;
+  document.getElementById('stat-total').textContent = all.length;
+}
+ 
+function updateSession() {
+  const el = document.getElementById('user-session');
+  if (!currentStudent) {
+    el.innerHTML = '<div class="no-session">Enter your ID above to reserve a seat</div>';
+    return;
+  }
+  const seatLabel = mySeat
+    ? `Seat ${mySeat}`
+    : 'No seat reserved';
+  el.innerHTML = `
+    <div class="user-session-inner">
+      <div class="user-pill">
+        <div class="user-avatar">${currentStudent[0].toUpperCase()}</div>
+        ${currentStudent}
+      </div>
+      <button class="btn-logout" onclick="logout()">Leave Library</button>
+    </div>
+    <div style="margin-top:8px; font-size:11px; color:var(--muted); font-family:'DM Mono',monospace;">${seatLabel}</div>
+  `;
+}
+ 
+function switchFloor(floor, button) {
+  currentFloor = floor;
+
+  // Update UI
+  document.getElementById('current-floor').textContent = floor;
+  document.getElementById('floor-number').textContent = floor;
+
+  // Update active button
+  document.querySelectorAll('.floor-btn').forEach(btn => btn.classList.remove('active'));
+  button.classList.add('active');
+
+  // Load seats for new floor
+  loadSeatsFromDB();
+}
+ 
+function setStudent() {
+  const val = document.getElementById('student-input').value.trim();
+
+  // Validate UID format: U followed by 8 digits
+  const uidPattern = /^U\d{8}$/;
+  if (!val) {
+    showToast('⚠️', 'Please enter your UID (e.g., U12345678)');
+    return;
+  }
+  if (!uidPattern.test(val)) {
+    showToast('❌', 'Invalid user: UID must be in format U12345678');
+    return;
+  }
+  if (currentStudent && mySeat) {
+    showToast('⚠️', 'Check out of your current seat first');
+    return;
+  }
+  currentStudent = val;
+  document.getElementById('student-input').value = '';
+  updateSession();
+  showToast('👋', `Welcome, ${val}! Pick a seat from the map.`);
+}
+ 
+function onSeatClick(id) {
+  const allDefs = Object.values(SEAT_DEFS).flat();
+  const def = allDefs.find(d => d.id === id);
+  const seat = seats[id];
+  const cls = getSeatClass(id);
+ 
+  if (!currentStudent) {
+    showToast('💡', 'Enter your UID first to reserve a seat');
+    document.getElementById('student-input').focus();
+    return;
+  }
+ 
+  pendingSeat = id;
+ 
+  // If it's my seat → offer checkout
+  if (cls === 'mine') {
+    showModal(
+      'Leave your seat?',
+      'You can re-reserve anytime while checked in.',
+      def,
+      [
+        { label: 'Stay', cls: 'btn-cancel', action: closeModal },
+        { label: '🚶 Leave Seat', cls: 'btn-checkout', action: checkoutSeat },
+      ]
+    );
+    return;
+  }
+ 
+  // Taken by someone else
+  if (cls === 'taken') {
+    showToast('🚫', `Seat ${def.label} is occupied by ${seat.occupant}`);
+    return;
+  }
+ 
+  // Free → reserve
+  if (mySeat) {
+    showModal(
+      'Switch Seats?',
+      `You'll move from ${mySeat} to ${def.label}.`,
+      def,
+      [
+        { label: 'Cancel', cls: 'btn-cancel', action: closeModal },
+        { label: '✓ Switch Seat', cls: 'btn-confirm', action: reserveSeat },
+      ]
+    );
+  } else {
+    showModal(
+      'Reserve this seat?',
+      `It will show as reserved under your name.`,
+      def,
+      [
+        { label: 'Cancel', cls: 'btn-cancel', action: closeModal },
+        { label: '✓ Confirm Seat', cls: 'btn-confirm', action: reserveSeat },
+      ]
+    );
+  }
+}
+ 
+function reserveSeat() {
+  closeModal();
+  const allDefs = Object.values(SEAT_DEFS).flat();
+  const def = allDefs.find(d => d.id === pendingSeat);
+
+  // Use full seat ID with floor prefix for API
+  const fullSeatId = `F${currentFloor}-${pendingSeat}`;
+
+  // Send reservation to backend
+  fetch('/api/seats/reserve', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ seatId: fullSeatId, student: currentStudent })
+  })
+  .then(res => res.json())
+  .then(data => {
+    if (data.message) {
+      showToast('🚫', data.message);
+      return;
+    }
+    // Free old seat locally
+    if (mySeat) {
+      seats[mySeat] = { status: 'free', occupant: null };
+    }
+    // Take new seat locally
+    mySeat = pendingSeat;
+    seats[mySeat] = { status: 'taken', occupant: currentStudent };
+    renderAll();
+    showToast('✅', `Seat ${def.label} reserved for ${currentStudent}`);
+  })
+  .catch(err => {
+    console.error('Reservation failed:', err);
+    showToast('❌', 'Failed to reserve seat. Please try again.');
+  });
+}
+ 
+function checkoutSeat() {
+  closeModal();
+  const allDefs = Object.values(SEAT_DEFS).flat();
+  const def = allDefs.find(d => d.id === mySeat);
+
+  // Send checkout to backend
+  fetch('/api/seats/leave', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ student: currentStudent })
+  })
+  .then(res => res.json())
+  .then(data => {
+    seats[mySeat] = { status: 'free', occupant: null };
+    const old = mySeat;
+    mySeat = null;
+    renderAll();
+    showToast('🙌', `Seat ${def.label} is now free. Thanks!`);
+  })
+  .catch(err => {
+    console.error('Checkout failed:', err);
+    showToast('❌', 'Failed to leave seat. Please try again.');
+  });
+}
+ 
+function logout() {
+  if (mySeat) {
+    // Send checkout to backend
+    fetch('/api/seats/leave', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ student: currentStudent })
+    })
+    .then(() => {
+      seats[mySeat] = { status: 'free', occupant: null };
+      mySeat = null;
+      const name = currentStudent;
+      currentStudent = null;
+      renderAll();
+      showToast('👋', `${name} has left the library. See you next time!`);
+    })
+    .catch(err => {
+      console.error('Logout failed:', err);
+      showToast('❌', 'Failed to logout properly.');
+    });
+  } else {
+    const name = currentStudent;
+    currentStudent = null;
+    renderAll();
+    showToast('👋', `${name} has left the library. See you next time!`);
+  }
+}
+ 
+// ─── MODAL ───────────────────────────────────────────────────────────────────
+ 
+function showModal(title, sub, def, actions) {
+  document.getElementById('modal-title').textContent = title;
+  document.getElementById('modal-sub').textContent = sub;
+  document.getElementById('modal-icon').textContent = def.icon;
+  document.getElementById('modal-seat-name').textContent = def.label;
+  document.getElementById('modal-seat-desc').textContent = def.desc;
+ 
+  const actRow = document.getElementById('modal-actions');
+  actRow.innerHTML = '';
+  actions.forEach(a => {
+    const btn = document.createElement('button');
+    btn.className = a.cls;
+    btn.textContent = a.label;
+    btn.addEventListener('click', a.action);
+    actRow.appendChild(btn);
+  });
+ 
+  document.getElementById('modal').classList.add('show');
+}
+ 
+function closeModal() {
+  document.getElementById('modal').classList.remove('show');
+}
+ 
+document.getElementById('modal').addEventListener('click', function(e) {
+  if (e.target === this) closeModal();
+});
+ 
+// ─── FILTER ───────────────────────────────────────────────────────────────────
+ 
+function filterZone(zone, btn) {
+  activeFilter = zone;
+  document.querySelectorAll('.zone-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  applyFilter();
+}
+ 
+function applyFilter() {
+  const zones = ['zone-window', 'zone-quiet', 'zone-collab'];
+  const map = { 'zone-window': 'window', 'zone-quiet': 'quiet', 'zone-collab': 'collab' };
+  zones.forEach(z => {
+    const el = document.getElementById(z);
+    if (!el) return;
+    if (activeFilter === 'all' || map[z] === activeFilter) {
+      el.style.display = '';
+    } else {
+      el.style.display = 'none';
+    }
+  });
+}
+ 
+// ─── TOAST ───────────────────────────────────────────────────────────────────
+ 
+let toastTimer;
+function showToast(icon, msg) {
+  clearTimeout(toastTimer);
+  document.getElementById('toast-icon').textContent = icon;
+  document.getElementById('toast-msg').textContent = msg;
+  const t = document.getElementById('toast');
+  t.classList.add('show');
+  toastTimer = setTimeout(() => t.classList.remove('show'), 3200);
+}
+ 
+// ─── CLOCK ───────────────────────────────────────────────────────────────────
+ 
+function updateClock() {
+  const now = new Date();
+  document.getElementById('header-time').textContent =
+    now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+}
+setInterval(updateClock, 1000);
+updateClock();
+ 
+// Enter key on student input
+document.getElementById('student-input').addEventListener('keydown', e => {
+  if (e.key === 'Enter') setStudent();
+});
+ 
+// ─── INIT ────────────────────────────────────────────────────────────────────
+
+loadSeatsFromDB();
+</script>
+</body>
+</html>
+ 
